@@ -1,0 +1,22 @@
+data:
+  root: ${oc.env:OCT_DATA_ROOT,data/raw}
+  splits_csv: data/splits/splits_v1.csv
+  class_names: [CNV, DME, DRUSEN, NORMAL]
+  filename_regex: '^(?P<label>[A-Za-z]+)-(?P<patient>\d+)-(?P<index>\d+)\.(?:jpe?g|png)$'
+  image_exts: [.jpeg, .jpg, .png]
+  path_resolution: relpath          # relpath | filename  (filename = find files by name if folder layout differs)
+
+split:
+  version: v1
+  seed: 42
+  val_frac: 0.10
+  test_frac: 0.10
+
+preprocess:
+  image_size: [224, 224]
+  resize_mode: squash
+  color: grayscale_to_rgb
+  mean: [0.485, 0.456, 0.406]
+  std:  [0.229, 0.224, 0.225]
+
+urgent_classes: [CNV, DME]
