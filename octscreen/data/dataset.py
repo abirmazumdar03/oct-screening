@@ -1,81 +1,63 @@
-
+# octscreen/data/dataset.py
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 import torch
+from omegaconf import OmegaConf
 from PIL import Image
 from torch.utils.data import Dataset
 
+from octscreen.common.config import to_dict
 from octscreen.common.preprocess import resize_gray, to_chw_array
+from octscreen.data.discover import build_filename_index
+
+
+def load_split(cfg, split):
+    df = pd.read_csv(cfg.data.splits_csv, dtype={"patient_id": str})
+    df = df[df["split"] == split]
+    limit = OmegaConf.select(cfg, "data.limit_per_class", default=None)
+    if limit:                                   # quick experiments: cap images per class
+        df = df.sample(frac=1.0, random_state=int(cfg.split.seed)).groupby("label", group_keys=False).head(int(limit))
+    return df.reset_index(drop=True)
+
+
+def resolve_paths(df, cfg):
+    root = Path(cfg.data.root)
+    if OmegaConf.select(cfg, "data.path_resolution", default="relpath") == "filename":
+        index = build_filename_index(root, list(cfg.data.image_exts))
+        missing = [f for f in df["filename"] if f not in index]
+        if missing:
+            raise FileNotFoundError(f"{len(missing)} files not found under {root}, e.g. {missing[:3]}")
+        return [index[f] for f in df["filename"]]
+    return [root / p for p in df["relpath"]]
 
 
 class OCTDataset(Dataset):
-    """Load OCT images from the existing split folders."""
+    """Returns (tensor[3,H,W], label_idx). Uses the SHARED preprocessing (contract C1)."""
 
-    def __init__(self, root, split, spec, class_names):
-        if split not in {"train", "val", "test"}:
-            raise ValueError(f"Invalid split: {split}")
-
-        self.root = Path(root) / split
+    def __init__(self, paths, labels, spec, augment=None):
+        self.paths = list(paths)
+        self.labels = np.asarray(labels, dtype=np.int64)
         self.spec = dict(spec)
-        self.class_names = list(class_names)
-
-        if not self.root.is_dir():
-            raise FileNotFoundError(
-                f"Split directory not found: {self.root}"
-            )
-
-        # Preserve the class order from the shared config.
-        self.class_to_idx = {
-            name: i for i, name in enumerate(self.class_names)
-        }
-
-        actual_classes = sorted(
-            p.name for p in self.root.iterdir()
-            if p.is_dir()
-        )
-
-        if actual_classes != sorted(self.class_names):
-            raise ValueError(
-                f"Unexpected folders in {self.root}: "
-                f"{actual_classes}"
-            )
-
-        self.samples = []
-
-        valid_exts = {".jpeg", ".jpg", ".png"}
-
-        for class_name in self.class_names:
-            class_dir = self.root / class_name
-
-            for path in sorted(class_dir.iterdir()):
-                if path.is_file() and path.suffix.lower() in valid_exts:
-                    self.samples.append(
-                        (path, self.class_to_idx[class_name])
-                    )
-
-        if not self.samples:
-            raise RuntimeError(f"No images found in {self.root}")
-
-        self.labels = np.asarray(
-            [label for _, label in self.samples],
-            dtype=np.int64,
-        )
+        self.augment = augment
 
     def __len__(self):
-        return len(self.samples)
+        return len(self.paths)
 
-    def __getitem__(self, idx):
-        image_path, label = self.samples[idx]
+    def __getitem__(self, i):
+        with Image.open(self.paths[i]) as im:
+            img = resize_gray(im, self.spec)          # step 1 (shared)
+        if self.augment is not None:
+            img = self.augment(img)                   # train only
+        x = torch.from_numpy(to_chw_array(img, self.spec))  # step 2 (shared)
+        return x, int(self.labels[i])
 
-        with Image.open(image_path) as img:
-            # Shared preprocessing: grayscale + resize.
-            img = resize_gray(img, self.spec)
 
-        # Shared preprocessing: normalisation + CHW layout.
-        arr = to_chw_array(img, self.spec)
-
-        # Convert NumPy array to PyTorch tensor.
-        x = torch.from_numpy(np.asarray(arr, dtype=np.float32))
-
-        return x, int(label)
+def make_dataset(cfg, split, augment=None):
+    df = load_split(cfg, split)
+    classes = list(cfg.data.class_names)
+    labels = df["label"].map({c: i for i, c in enumerate(classes)})
+    if labels.isna().any():
+        raise ValueError(f"Labels not in class_names: {sorted(set(df.loc[labels.isna(), 'label']))}")
+    return OCTDataset(resolve_paths(df, cfg), labels.to_numpy(), to_dict(cfg.preprocess), augment), df
