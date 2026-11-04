@@ -21,7 +21,17 @@ dependencies = [
 dev      = ["pytest>=8"]
 # Aditya's group. Abir and Poddar add theirs (optimize / app) with `uv add --group ...`
 train    = ["torch>=2.3", "torchvision>=0.18", "timm>=1.0", "matplotlib"]
-optimize = []   # Abir fills this (see 02_Abir guide)
+optimize = [
+    "matplotlib>=3.10.9",
+    "onnx>=1.23.2",
+    "onnxruntime>=1.24.3",
+    "onnxscript>=0.7.2",
+    "psutil>=7.2.2",
+    "py-cpuinfo>=9.0.0",
+    "timm>=1.0.31",
+    "torch>=2.14.1",
+    "torchvision>=0.29.2",
+]   # Abir fills this (see 02_Abir guide)
 app      = []   # Poddar fills this (see 03_Poddar guide)
 
 [tool.uv]
