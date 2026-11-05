@@ -171,9 +171,14 @@ def main():
             if cfg.train.grad_clip:
                 scaler.unscale_(opt)
                 nn.utils.clip_grad_norm_(model.parameters(), float(cfg.train.grad_clip))
+
+            scale_before = scaler.get_scale()
             scaler.step(opt)
             scaler.update()
-            sched.step()
+            scale_after = scaler.get_scale()
+
+            if scale_after >= scale_before:
+                sched.step()
             b = y.size(0)
             n += b
             sums["loss"] += loss.item() * b
