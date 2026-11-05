@@ -1,0 +1,14 @@
+# configs/student_kd.yaml
+include: [student.yaml]
+
+run:
+  name: student_kd_v1
+
+train:
+  label_smoothing: 0.0         # the teacher's soft targets already regularise
+
+kd:
+  enabled: true
+  teacher_checkpoint: ${oc.env:OCT_TEACHER_CKPT,artifacts/runs/teacher_r50_v1/best.pt}
+  temperature: 4.0
+  alpha: 0.7                   # 0.7 → 70% learn-from-teacher, 30% learn-from-labels
