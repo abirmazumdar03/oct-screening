@@ -1,0 +1,42 @@
+# configs/app.yaml  (Poddar)
+model:
+  sources:                       # tried in order; the first VALID package wins
+    - type: local
+      path: ${oc.env:OCT_MODEL_DIR,artifacts/model_package}
+    - type: url_zip              # e.g. the GitHub Release asset of the package zip
+      url: ${oc.env:OCT_MODEL_URL,null}
+      sha256: ${oc.env:OCT_MODEL_SHA256,null}
+    - type: hf_repo              # e.g. oct-screening-team/oct-screen-model
+      repo_id: ${oc.env:OCT_MODEL_HF_REPO,null}
+      revision: main
+  cache_dir: ${oc.env:OCT_MODEL_CACHE,artifacts/model_cache}
+  enable_heatmap: true           # env OCT_ENABLE_HEATMAP=0 turns it off (e.g. on 512 MB hosts)
+  threads: 0                     # ONNX Runtime threads; 0 = default
+
+policy:
+  confidence_threshold: 0.70     # PROVISIONAL: replace with the value chosen from Abir's threshold_table.md (§9)
+  triage:                        # class → urgent | routine | none   (every class in the package must be listed)
+    CNV: urgent
+    DME: urgent
+    DRUSEN: routine
+    NORMAL: none
+  guard:
+    enabled: true
+    mode: block                  # block = refuse to screen · warn = screen, but force "review"
+    min_side_px: 128
+    aspect_min: 0.5              # width / height; Kermany OCT scans are ~0.8–3.1
+    aspect_max: 4.0
+    max_color_diff: 12           # 0–255 scale; grayscale OCT ≈ 0, colour photos usually > 20
+
+ui:
+  languages: [en, hi]            # add a language = add configs/i18n/<code>.yaml + list it here
+  default_language: en
+  i18n_dir: configs/i18n
+  host: 127.0.0.1                # env OCT_HOST overrides (0.0.0.0 in Docker / Spaces)
+  port: 7860                     # env PORT overrides (Render & co. set it)
+  share: false                   # true → temporary public gradio.live link (needs internet)
+  open_browser: true
+  auto_analyze: true             # analyse immediately when an image is uploaded / a sample is clicked
+  heatmap_alpha: 0.45
+  examples_dir: ${oc.env:OCT_EXAMPLES_DIR,artifacts/packs/sample_scans}
+  max_examples: 8
