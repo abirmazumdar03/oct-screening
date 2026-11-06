@@ -1,0 +1,38 @@
+{
+  "version": "v1",
+  "seed": 42,
+  "val_frac": 0.1,
+  "test_frac": 0.1,
+  "n_images": 83605,
+  "n_patients": 4657,
+  "images_per_split_class": {
+    "test": {
+      "CNV": 3755,
+      "DME": 1012,
+      "DRUSEN": 712,
+      "NORMAL": 2339
+    },
+    "train": {
+      "CNV": 29408,
+      "DME": 9722,
+      "DRUSEN": 7116,
+      "NORMAL": 21561
+    },
+    "val": {
+      "CNV": 4053,
+      "DME": 688,
+      "DRUSEN": 792,
+      "NORMAL": 2447
+    }
+  },
+  "patients_per_split": {
+    "test": 462,
+    "train": 3735,
+    "val": 460
+  },
+  "fingerprint_sha1": "c8ed060cab61abf4a9c5e2be30c918b91eefb8c7",
+  "discovery": {
+    "skipped_duplicate_filename": 879,
+    "kept": 83605
+  }
+}

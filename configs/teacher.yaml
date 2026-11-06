@@ -1,0 +1,44 @@
+# configs/teacher.yaml
+include: [data.yaml]
+
+run:
+  name: teacher_r50_v1
+  out_dir: ${oc.env:OCT_OUT_DIR,artifacts/runs}
+  seed: 42
+
+model:
+  arch: resnet50.tv2_in1k      # any timm name; backups: efficientnet_b3.ra2_in1k, convnext_tiny.fb_in1k
+  pretrained: true
+  drop_rate: 0.2
+
+train:
+  epochs: 10
+  batch_size: 64
+  num_workers: 4               # Kaggle has 4 CPU cores; use 0 on a Windows laptop
+  amp: true                    # mixed precision: ~2x faster on T4
+  channels_last: true
+  lr_backbone: 2.0e-4
+  lr_head: 1.0e-3
+  weight_decay: 0.01
+  warmup_epochs: 1
+  min_lr_ratio: 0.01
+  label_smoothing: 0.0         # keep 0 for the teacher: smoothed teachers distil worse
+  class_weighting: inverse_sqrt
+  freeze_backbone_epochs: 0
+  grad_clip: 1.0
+  early_stopping_patience: 3
+  monitor: macro_f1            # macro_f1 | accuracy | urgent_sensitivity | loss
+  log_every: 100
+  resume: null
+
+aug:
+  enabled: true
+  hflip_p: 0.5
+  rotate_deg: 10
+  translate: 0.05
+  scale: [0.95, 1.05]
+  brightness: 0.1
+  contrast: 0.1
+
+kd:
+  enabled: false

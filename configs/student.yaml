@@ -1,0 +1,17 @@
+# configs/student.yaml
+include: [teacher.yaml]        # inherit everything, override what differs
+
+run:
+  name: student_base_v1
+
+model:
+  arch: mobilenetv3_small_100.lamb_in1k   # backups: efficientnet_lite0.ra_in1k, mobilenetv2_100.ra_in1k
+  drop_rate: 0.2
+
+train:
+  epochs: 20
+  batch_size: 128
+  lr_backbone: 1.0e-3          # small nets like higher LRs
+  lr_head: 2.0e-3
+  label_smoothing: 0.1
+  early_stopping_patience: 4
