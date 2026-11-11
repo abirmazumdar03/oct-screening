@@ -6,6 +6,9 @@ models:
   teacher:      ${oc.env:OCT_CKPT_TEACHER,artifacts/runs/teacher_r50_v1/best.pt}
   student_base: ${oc.env:OCT_CKPT_STUDENT_BASE,artifacts/runs/student_base_v1/best.pt}
   student_kd:   ${oc.env:OCT_CKPT_STUDENT_KD,artifacts/runs/student_kd_v1/best.pt}
+  student_base_lite0: ${oc.env:OCT_CKPT_STUDENT_BASE_LITE0,artifacts/runs/student_base_lite0_v1/best.pt}
+  student_kd_lite0:   ${oc.env:OCT_CKPT_STUDENT_KD_LITE0,artifacts/runs/student_kd_lite0_v1/best.pt}
+  student_kd_mnv2:    ${oc.env:OCT_CKPT_STUDENT_KD_MNV2,artifacts/runs/student_kd_mnv2_v1/best.pt}
 
 export:
   out_dir: ${oc.env:OCT_ONNX_DIR,artifacts/onnx}
