@@ -1,0 +1,5 @@
+include: [student.yaml]
+run:
+  name: student_base_lite0_v1
+model:
+  arch: efficientnet_lite0.ra_in1k
