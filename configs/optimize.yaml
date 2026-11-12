@@ -43,7 +43,7 @@ benchmark:
   decode_threads: 4              # threads for JPEG decoding during accuracy evaluation
   threads: 0                     # ONNX Runtime intra-op threads for accuracy eval; 0 = default
   reference_model: teacher.fp32  # "× smaller" is computed against this file's measured size
-  report_order: [teacher.fp32, student_base.fp32, student_kd.fp32, student_base.int8, student_kd.int8]
+  report_order: [teacher.fp32, student_base_lite0.fp32, student_kd_lite0.fp32, student_kd_lite0.int8]
   latency:
     warmup: 20
     runs: 200
@@ -62,10 +62,10 @@ calibration:
 package:
   out_dir: artifacts/model_package
   name: oct-student-kd
-  version: 1.0.0
-  classifier: student_kd.int8    # stem of the ONNX file in export.out_dir
+  version: 1.1.1
+  classifier: student_kd_lite0.int8   # stem of the ONNX file in export.out_dir
   include_explainer: true
-  explainer_from: student_kd     # key in `models:`; must be the SAME network as the classifier
+  explainer_from: student_kd_lite0     # key in `models:`; must be the SAME network as the classifier
   target_layer: auto
   latency_machine: null          # null → slowest measured machine (conservative claim)
   placeholder: false
