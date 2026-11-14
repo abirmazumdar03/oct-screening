@@ -19,6 +19,11 @@ MobileNetV3 failed 8-bit compression (27–41% agreement) because of its archite
   Results: sample scans rejected **_/_** (target 0) · non-OCT images rejected **_/_** (`artifacts/guard_tests_results.csv`).
   Passed the guard (known limitation): _e.g. black-and-white photo of a desk_.
 
+- Sat 14 Nov: **guard bug found in testing**: a colour selfie against grey walls scored 9.3 (< 12) and was screened as
+  "CNV 100%, URGENT". Fix: also reject if > 2% of pixels are clearly coloured (chroma > 20), and lower max_color_diff to 4.
+  Measured: selfie 24.5% coloured pixels → rejected; real OCT scans 0% (mean diff 0.0–0.7) → pass. Regression test added.
+  Known limit stays: a black-and-white photo is grayscale and can still pass; the model is over-confident on such inputs.
+
 ## Confidence threshold (§9)
 
 - Thu night (dev table): threshold _0.xx_ → _x %_ flagged, _y %_ silent urgent misses on val.
