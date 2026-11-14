@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "octscreen"
 version = "0.1.0"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 # Light, shared core: everything in octscreen/common needs only these.
 dependencies = [
   "numpy",
