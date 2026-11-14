@@ -113,7 +113,7 @@ The full table is in [`docs/benchmark.md`](docs/benchmark.md), and the confusion
 | Calibration + review-threshold table | ✅ Done |
 | Final test-set benchmark | ✅ Done (evaluated once) |
 | Versioned model package for the app | ✅ Done (v1.1.1) |
-| Bilingual offline app (Gradio, English / Hindi) | 🟡 In integration |
+| Bilingual offline app (Gradio, English / Hindi) | ✅ Built (`octscreen/app/`); integration with v1.1.1 in progress |
 | Speed on our 2 other laptops (Ryzen 5, Core i5) | 🟡 In progress |
 | Final submission | 📅 25 Nov 2026 |
 
@@ -126,11 +126,26 @@ You need [uv](https://docs.astral.sh/uv/) and Git. uv installs the right Python 
 ```bash
 git clone https://github.com/abirmazumdar03/oct-screening.git
 cd oct-screening
-uv sync --group optimize      # CPU-only PyTorch + ONNX Runtime
+uv sync --group optimize      # CPU-only PyTorch + ONNX Runtime  (app: --group app --group app-heatmap)
 uv run pytest -q              # contract tests: split has no leak, preprocessing, ONNX parity, explainer
 ```
 
 > **About model files and data:** model weights, ONNX files and data packs are **not in git**. They're too large, and the dataset has its own terms. The commands below expect them in `artifacts/`. The team shares them on Drive, or you can rebuild them yourself with the training steps further down.
+
+### Run the app (offline, English / हिन्दी)
+
+```powershell
+uv sync --group app --group app-heatmap        # once, needs internet
+powershell -ExecutionPolicy Bypass -File scripts\run_app.ps1            # opens http://127.0.0.1:7860 · add -Lang hi · -NoHeatmap
+uv run python -m octscreen.app.cli --images artifacts/packs/sample_scans --lang hi   # no browser: table + CSV
+```
+
+Upload a scan (or click a sample) and the app shows, in under a second: the **triage instruction** first
+(🔴 urgent · 🟡 routine · 🟢 no signs · ⚪ uncertain → manual review), the class with **confidence bars**, the
+**heatmap**, and the time taken. Images that are clearly not OCT scans (colour photos, tiny images, odd shapes) are
+refused before the model runs, and anything below the confidence cut-off (`configs/app.yaml → policy.confidence_threshold`)
+is sent to a human instead of being guessed. All policy lives in `configs/app.yaml`; all text in `configs/i18n/{en,hi}.yaml`.
+Deployment files (Docker, Hugging Face Space, Render) are in `deploy/`.
 
 ### Run the shipped model
 

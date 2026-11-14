@@ -1,0 +1,17 @@
+# deploy/render.yaml: Render → New → Blueprint → pick this repo → set the two secret values in the dashboard
+services:
+  - type: web
+    name: oct-screening
+    runtime: docker
+    plan: free
+    dockerfilePath: ./deploy/Dockerfile
+    dockerContext: .
+    envVars:
+      - key: OCT_ENABLE_HEATMAP
+        value: "0"                 # free plan has 512 MB RAM → no torch
+      - key: OCT_ONLINE_DEMO
+        value: "1"                 # shows the "don't upload patient data" banner
+      - key: OCT_MODEL_URL
+        sync: false                # set in the dashboard: GitHub Release URL of the package zip
+      - key: OCT_MODEL_SHA256
+        sync: false
