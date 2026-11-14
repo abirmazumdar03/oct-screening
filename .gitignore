@@ -9,3 +9,4 @@ data/raw/
 *.zip
 .ipynb_checkpoints/
 .env
+octscreen.egg-info/

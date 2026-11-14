@@ -1,0 +1,5 @@
+include: [student_kd.yaml]
+run:
+  name: student_kd_mnv2_v1
+model:
+  arch: mobilenetv2_100.ra_in1k

@@ -1,7 +1,0 @@
-numpy
-pillow
-pandas
-scikit-learn
-omegaconf>=2.3
-pyyaml
-tqdm

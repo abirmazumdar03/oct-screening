@@ -13,7 +13,7 @@ import pandas as pd
 from octscreen.common.config import load_config
 from octscreen.data.dataset import resolve_paths
 
-PACKS = {"sample": ("test", 10, "sample_scans"), "calib": ("train", 128, "calib_pack"), "test": ("test", None, "test_pack")}
+PACKS = {"sample": ("test", 10, "sample_scans"), "calib": ("train", 128, "calib_pack"), "test": ("test", None, "test_pack") , "val": ("val", None, "val_pack")}
 
 
 def main():

@@ -1,0 +1,71 @@
+# configs/optimize.yaml  (Abir)
+include: [data.yaml]
+
+# Training checkpoints (contract C3). Paths come from env vars (Kaggle) or --set; defaults match Aditya's run names.
+models:
+  teacher:      ${oc.env:OCT_CKPT_TEACHER,artifacts/runs/teacher_r50_v1/best.pt}
+  student_base: ${oc.env:OCT_CKPT_STUDENT_BASE,artifacts/runs/student_base_v1/best.pt}
+  student_kd:   ${oc.env:OCT_CKPT_STUDENT_KD,artifacts/runs/student_kd_v1/best.pt}
+  student_base_lite0: ${oc.env:OCT_CKPT_STUDENT_BASE_LITE0,artifacts/runs/student_base_lite0_v1/best.pt}
+  student_kd_lite0:   ${oc.env:OCT_CKPT_STUDENT_KD_LITE0,artifacts/runs/student_kd_lite0_v1/best.pt}
+  student_kd_mnv2:    ${oc.env:OCT_CKPT_STUDENT_KD_MNV2,artifacts/runs/student_kd_mnv2_v1/best.pt}
+
+export:
+  out_dir: ${oc.env:OCT_ONNX_DIR,artifacts/onnx}
+  opset: 17
+  dynamic_batch: true            # batch axis is dynamic → fast batched evaluation, batch=1 for latency
+  exporter: auto                 # auto (legacy, then dynamo) | legacy | dynamo
+  parity_atol: 1.0e-3            # max |torch - onnx| on logits
+
+quant:
+  mode: int8_static              # int8_static | int8_dynamic | fp16 | fp32
+  format: qdq                    # qdq (recommended for CPU) | qoperator
+  per_channel: true              # one scale per output channel: much better accuracy for conv nets
+  reduce_range: true             # 7-bit weights: avoids saturation on CPUs without VNNI (e.g. 5th-gen i3)
+  activation_type: quint8        # quint8 | qint8
+  weight_type: qint8             # qint8 | quint8
+  calibrate_method: minmax       # minmax | percentile | entropy
+  percentile: 99.999             # only for calibrate_method=percentile
+  exclude_first_conv: false      # keep the first conv in FP32 (sensitive layer)
+  exclude_last_linear: false     # keep the classifier layer in FP32
+  nodes_to_exclude: []           # explicit ONNX node names, if needed
+  max_f1_drop: 0.02              # early warning: val macro-F1 drop FP32 → quantized
+  calib:
+    root: null                   # null → data.root           (laptop: artifacts/packs/calib_pack)
+    splits_csv: null             # null → data.splits_csv     (laptop: artifacts/packs/calib_pack/manifest.csv)
+    split: train                 # NEVER val or test
+    per_class: 128
+    batch_size: 16
+
+benchmark:
+  out_dir: ${oc.env:OCT_BENCH_DIR,artifacts/benchmark}
+  eval_batch: 32
+  decode_threads: 4              # threads for JPEG decoding during accuracy evaluation
+  threads: 0                     # ONNX Runtime intra-op threads for accuracy eval; 0 = default
+  reference_model: teacher.fp32  # "× smaller" is computed against this file's measured size
+  report_order: [teacher.fp32, student_base_lite0.fp32, student_kd_lite0.fp32, student_kd_lite0.int8]
+  latency:
+    warmup: 20
+    runs: 200
+    threads: 0                   # 0 = ONNX Runtime default (physical cores); record it either way
+    max_images: 40
+
+calibration:
+  enabled: true
+  split: val                     # NEVER test
+  t_min: 0.25
+  t_max: 5.0
+  t_steps: 200
+  ece_bins: 15
+  thresholds: [0.50, 0.60, 0.70, 0.80, 0.85, 0.90, 0.95]
+
+package:
+  out_dir: artifacts/model_package
+  name: oct-student-kd
+  version: 1.1.1
+  classifier: student_kd_lite0.int8   # stem of the ONNX file in export.out_dir
+  include_explainer: true
+  explainer_from: student_kd_lite0     # key in `models:`; must be the SAME network as the classifier
+  target_layer: auto
+  latency_machine: null          # null → slowest measured machine (conservative claim)
+  placeholder: false
