@@ -1,0 +1,45 @@
+# configs/app.yaml
+model:
+  sources:
+    - type: local
+      path: ${oc.env:OCT_MODEL_DIR,artifacts/model_package}
+    - type: url_zip
+      url: ${oc.env:OCT_MODEL_URL,null}
+      sha256: ${oc.env:OCT_MODEL_SHA256,null}
+    - type: hf_repo
+      repo_id: ${oc.env:OCT_MODEL_HF_REPO,null}
+      revision: main
+
+  cache_dir: ${oc.env:OCT_MODEL_CACHE,artifacts/model_cache}
+  enable_heatmap: true
+  threads: 0
+
+policy:
+  confidence_threshold: 0.70  # provisional; calibrate using validation data
+
+  triage:
+    CNV: urgent
+    DME: urgent
+    DRUSEN: routine
+    NORMAL: none
+
+  guard:
+    enabled: true
+    mode: block                  # block = refuse to screen; warn = force review
+    min_side_px: 128
+    aspect_min: 0.5
+    aspect_max: 4.0
+    max_color_diff: 12
+
+ui:
+  languages: [en, hi]
+  default_language: en
+  i18n_dir: configs/i18n
+  host: 127.0.0.1
+  port: 7860
+  share: false
+  open_browser: true
+  auto_analyze: true
+  heatmap_alpha: 0.45
+  examples_dir: ${oc.env:OCT_EXAMPLES_DIR,artifacts/packs/sample_scans}
+  max_examples: 8

@@ -1,6 +1,43 @@
+@'
 # Model Card
 
-## 1. Data
+## 1. Model Details
+
+### Final model
+
+The final student architecture is **EfficientNet-Lite0**, trained using knowledge distillation from a ResNet-50 teacher.
+
+| Parameter | Details |
+|---|---|
+| Final student architecture | EfficientNet-Lite0 |
+| Teacher architecture | ResNet-50 |
+| Deployment precision | INT8 |
+| INT8 model size | 3.80 MB |
+| Input resolution | 224 × 224 |
+| Training framework | PyTorch |
+| Inference runtime | ONNX Runtime |
+
+The final model was selected after MobileNetV3-Small failed to maintain sufficient agreement with its FP32 version following INT8 quantisation.
+
+The exact model package version, package metadata, and final run identifier will be added when the final model package is available.
+
+### Intended use
+
+The model is intended to provide screening and triage support for trained operators at clinics with access to OCT imaging equipment.
+
+It is a research prototype and is not intended to replace clinical assessment or professional diagnosis.
+
+### Out-of-scope use
+
+The model is not intended for:
+
+- Providing an independent medical diagnosis.
+- Screening children.
+- Processing non-OCT images.
+- Use with scanners other than the training data source without appropriate validation.
+- Making clinical decisions without human review.
+
+## 2. Data
 
 ### Dataset source
 
@@ -53,7 +90,7 @@ All input OCT images underwent the following preprocessing:
 
 Training-time augmentation included horizontal flipping, rotation, translation, scaling, brightness adjustment and contrast adjustment.
 
-## 2. Training
+## 3. Training
 
 ### Training environment
 
@@ -67,44 +104,43 @@ Training-time augmentation included horizontal flipping, rotation, translation, 
 | Input resolution | 224 × 224 |
 | Random seed | 42 |
 
-### Model architectures
+### Model architectures and experiments
 
-Four model runs were completed.
+Four initial model runs were completed.
 
 | Run | Architecture | Role |
 |---|---|---|
 | `teacher_r50_v1` | ResNet-50 (`resnet50.tv2_in1k`) | Teacher |
 | `teacher_effb3_v1` | EfficientNet-B3 (`efficientnet_b3.ra2_in1k`) | Alternative teacher |
-| `student_base_v1` | MobileNetV3-Small (`mobilenetv3_small_100.lamb_in1k`) | Baseline student |
-| `student_kd_v1` | MobileNetV3-Small (`mobilenetv3_small_100.lamb_in1k`) | Knowledge-distilled student |
+| `student_base_v1` | MobileNetV3-Small (`mobilenetv3_small_100.lamb.in1k`) | Baseline student |
+| `student_kd_v1` | MobileNetV3-Small (`mobilenetv3_small_100.lamb.in1k`) | Initial knowledge-distilled student |
 
-### Training configurations
+MobileNetV3-Small was evaluated as the initial student architecture. Its INT8 version achieved only 27–41% agreement with its FP32 version.
 
-The resolved configurations are retained with their corresponding run artefacts.
+The student architecture was subsequently changed to EfficientNet-Lite0, which was retrained using the same ResNet-50 teacher.
 
-| Run | Configuration file |
-|---|---|
-| `teacher_r50_v1` | `teacher_r50_v1/config_resolved.yaml` |
-| `teacher_effb3_v1` | `teacher_effb3_v1/config_resolved.yaml` |
-| `student_base_v1` | `student_base_v1/config_resolved.yaml` |
-| `student_kd_v1` | `student_kd_v1/config_resolved.yaml` |
+**Final student architecture: EfficientNet-Lite0.**
+
+The exact run identifier and resolved configuration filename for the final EfficientNet-Lite0 run are pending confirmation from the training artefacts.
 
 ### Knowledge distillation
 
-The ResNet-50 teacher was used to train the MobileNetV3-Small student through knowledge distillation.
+The ResNet-50 teacher was used to train the final EfficientNet-Lite0 student through knowledge distillation.
+
+The initial MobileNetV3-Small knowledge-distillation experiment used the following configuration:
 
 | Parameter | Value |
 |---|---:|
 | Teacher architecture | ResNet-50 |
-| Student architecture | MobileNetV3-Small |
+| Initial student architecture | MobileNetV3-Small |
 | Temperature | 4.0 |
 | Alpha | 0.7 |
 
-The student was trained both independently and with teacher guidance to measure the effect of knowledge distillation.
+The final EfficientNet-Lite0 run used the same teacher. Its exact distillation hyperparameters should be confirmed from its resolved training configuration before being reported.
 
 ### Training outputs
 
-The following artefacts are retained for each run:
+The following artefacts are retained for the initial model runs:
 
 - `best.pt` — best-performing model checkpoint.
 - `config_resolved.yaml` — resolved training configuration.
@@ -117,3 +153,68 @@ The following artefacts are retained for each run:
 ### Training duration
 
 Exact wall-clock training durations were not recorded for the completed runs and are therefore not reported.
+
+## 4. Evaluation
+
+### Recorded results
+
+The final EfficientNet-Lite0 knowledge-distilled student produced the following recorded results:
+
+| Metric | Result |
+|---|---:|
+| Validation macro-F1 | 0.919 |
+| Baseline validation macro-F1 | 0.888 |
+| Macro-F1 improvement | 3.1 percentage points |
+| INT8 model size | 3.80 MB |
+| INT8-to-FP32 agreement | 99.5% |
+| Agreement evaluation samples | 400 test scans |
+
+The INT8 model achieved 99.5% agreement with the uncompressed model on 400 test scans.
+
+The validation macro-F1 comparison is reported separately from the INT8-to-FP32 agreement result.
+
+The final held-out test macro-F1, per-class metrics, AUC and measured inference latency are not included here because the corresponding results have not yet been provided.
+
+## 5. Limitations
+
+- The model was developed using the Kermany et al. OCT2017 dataset.
+- The dataset represents a limited imaging domain and does not establish generalisation across different OCT scanners.
+- The model has not been clinically validated.
+- INT8-to-FP32 agreement measures consistency between model versions; it does not establish clinical accuracy.
+- The reported validation macro-F1 is not a substitute for final held-out test performance.
+- Input safety checks are heuristic checks and cannot guarantee that every accepted image is a valid OCT scan.
+- Low-confidence predictions require human review.
+
+## 6. Ethical Considerations
+
+### Privacy
+
+The application is designed to support offline inference so that image processing can take place locally.
+
+The online demonstration is intended for sample scans only. Real patient data must not be uploaded to the public demonstration.
+
+### Human oversight
+
+The model provides screening support rather than an independent diagnosis. Cases with insufficient confidence are flagged for human review.
+
+### Accessibility
+
+The application supports English and Hindi to make the interface accessible to operators who prefer either language.
+
+### Responsible use
+
+The model should not be used as the sole basis for medical decisions. Its limitations, intended use and validation status should be communicated to operators.
+
+## 7. How to Report Problems
+
+Problems relating to the application, model predictions, input validation, deployment or user interface should be reported through the project repository.
+
+When reporting an issue, include:
+
+- A description of the problem.
+- The application and model package version, if available.
+- The steps required to reproduce the issue.
+- The relevant error message or application log.
+
+Do not attach real patient images or personally identifiable medical information to public issue reports.
+'@ | Set-Content -Path docs/model_card.md -Encoding utf8

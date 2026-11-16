@@ -1,0 +1,20 @@
+
+# Render → New → Blueprint → select this repository.
+# Set OCT_MODEL_URL and OCT_MODEL_SHA256 in the Render dashboard.
+
+services:
+  - type: web
+    name: oct-screening
+    runtime: docker
+    plan: free
+    dockerfilePath: ./deploy/Dockerfile
+    dockerContext: .
+    envVars:
+      - key: OCT_ENABLE_HEATMAP
+        value: "0"
+      - key: OCT_ONLINE_DEMO
+        value: "1"
+      - key: OCT_MODEL_URL
+        sync: false
+      - key: OCT_MODEL_SHA256
+        sync: false
