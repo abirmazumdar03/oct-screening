@@ -9,15 +9,22 @@ pytest.importorskip("onnxruntime")
 PKG = Path("artifacts/model_package")
 
 
+def _oct_like(seed=0):
+    """Synthetic image with the basic look of an OCT B-scan: dark background, one bright band, speckle."""
+    a = np.full((496, 768), 15.0)
+    a[220:280] = 170
+    a += np.random.default_rng(seed).normal(0, 18, a.shape)
+    return Image.fromarray(a.clip(0, 255).astype(np.uint8))
+
+
 @pytest.mark.skipif(not (PKG / "model_meta.json").exists(), reason="no model package unpacked")
 def test_screen_returns_a_complete_result():
     from octscreen.app.inference import Screener
     from octscreen.common.config import load_config
     cfg = load_config("configs/app.yaml")
     s = Screener(PKG, cfg.policy, enable_heatmap=False)
-    img = Image.fromarray((np.random.default_rng(0).random((496, 768)) * 255).astype(np.uint8))
-    res = s.screen(img)
-    assert res["status"] == "ok"
+    res = s.screen(_oct_like())
+    assert res["status"] == "ok", res.get("issues")
     assert abs(sum(res["probs"].values()) - 1.0) < 1e-5
     assert res["level"] in ("urgent", "routine", "none", "review")
     assert set(res["probs"]) == set(s.classes)
@@ -57,3 +64,16 @@ def test_model_source_skips_unconfigured_and_reports_errors(tmp_path):
         {"type": "hf_repo", "repo_id": None, "revision": "main"}]})
     with pytest.raises(RuntimeError, match="local"):
         resolve_package(cfg)
+
+
+@pytest.mark.skipif(not (PKG / "model_meta.json").exists(), reason="no model package unpacked")
+def test_grayscale_non_oct_is_rejected_end_to_end():
+    """Regression (16 Nov): grayscale noise / X-ray-like images used to be screened as a disease."""
+    from octscreen.app.inference import Screener
+    from octscreen.common.config import load_config
+    cfg = load_config("configs/app.yaml")
+    s = Screener(PKG, cfg.policy, enable_heatmap=False)
+    img = Image.fromarray((np.random.default_rng(0).random((496, 768)) * 255).astype(np.uint8))
+    res = s.screen(img)
+    assert res["status"] == "rejected"
+    assert "not_oct_structure" in [c for c, _ in res["issues"]]

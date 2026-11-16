@@ -60,3 +60,46 @@ def test_real_sample_scans_pass_if_available():
         pytest.skip("sample_scans not unpacked")
     rejected = [p.name for p in files if codes(Image.open(p))]
     assert rejected == [], f"real OCT scans rejected by the guard: {rejected[:5]}"
+
+
+# ---- structure check ("does it look like an OCT B-scan?") ------------------------------------------------
+GS = OmegaConf.merge(G, {"structure": {"enabled": True, "min_row_peak": 0.689,
+                                       "max_median_brightness": 86, "min_speckle": 0.068}})
+
+
+def _oct_like(seed=0):
+    """Dark background, one bright horizontal band, grainy speckle: the basic look of an OCT B-scan."""
+    rng = np.random.default_rng(seed)
+    a = np.full((496, 768), 15.0)
+    a[220:280] = 170
+    a += rng.normal(0, 18, a.shape)
+    return Image.fromarray(a.clip(0, 255).astype(np.uint8))
+
+
+def test_structure_passes_oct_like_image():
+    assert [c for c, _ in check_image(_oct_like(), GS)] == []
+
+
+def test_structure_rejects_smooth_xray_like_image():
+    y, x = np.mgrid[0:600, 0:500]
+    blob = 60 + 150 * np.exp(-(((x - 250) / 140) ** 2 + ((y - 300) / 220) ** 2))     # smooth, bright, no band
+    assert "not_oct_structure" in [c for c, _ in check_image(Image.fromarray(blob.astype(np.uint8)), GS)]
+
+
+def test_structure_check_is_optional():
+    """Without a `structure` block the guard behaves exactly as before (lego: nothing breaks)."""
+    y, x = np.mgrid[0:600, 0:500]
+    blob = 60 + 150 * np.exp(-(((x - 250) / 140) ** 2 + ((y - 300) / 220) ** 2))
+    assert "not_oct_structure" not in codes(Image.fromarray(blob.astype(np.uint8)))
+
+
+def test_app_yaml_structure_keeps_most_real_scans_if_available():
+    """Measured cost: ~2% of real scans are rejected. Guard against a config change that rejects far more."""
+    from octscreen.common.config import load_config
+    g = load_config("configs/app.yaml").policy.guard
+    folder = Path("artifacts/packs/sample_scans")
+    files = [p for p in folder.rglob("*") if p.suffix.lower() in (".jpeg", ".jpg", ".png")] if folder.exists() else []
+    if not files:
+        pytest.skip("sample_scans not unpacked")
+    rejected = [p.name for p in files if check_image(Image.open(p), g)]
+    assert len(rejected) <= max(1, int(0.05 * len(files))), f"too many real scans rejected: {rejected}"
