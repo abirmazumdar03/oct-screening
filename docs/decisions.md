@@ -41,3 +41,5 @@ MobileNetV3 failed 8-bit compression (27–41% agreement) because of its archite
 
 - Fri: host #1 HF Space `oct-screening-team/oct-screening`: _link, package version_
 - Fri: host #2 Render: _link, package version_
+
+- 16 Nov: **Input guard: added an "OCT structure" check** (`policy.guard.structure` in `configs/app.yaml`). Why: 9 grayscale non-OCT images (5 black-and-white photos, 4 X-rays) passed the colour check and were screened as OCT diseases. Three measures were compared on real OCT vs non-OCT (standalone EDA): bright-band score (one bright retinal band on a dark background), median brightness, and speckle. Limits were fitted on the VAL pack (7,980 real scans, each limit keeps 99.5%) and checked once on the TEST pack. Result: all 16 non-OCT test images caught (colour + structure); **real OCT wrongly rejected: 177/7,818 = 2.26% on test (109/7,980 = 1.37% on val)**. Rejected images are blocked with "doesn't look like an OCT scan; if it is, refer for manual review". Image size was deliberately NOT used as a rule: 496/512 px heights describe this dataset's scanner, not OCT in general.

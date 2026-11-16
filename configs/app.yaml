@@ -29,6 +29,14 @@ policy:
     max_color_diff: 4            # mean |R-G|,|G-B| on a 0–255 scale; real OCT 0.0–0.7, a muted indoor selfie 9.3
     color_pixel_chroma: 20       # a pixel counts as "coloured" if max(R,G,B) - min(R,G,B) > this
     max_color_fraction: 0.02     # reject if more than 2% of pixels are coloured (real OCT 0%, indoor selfie 24.5%)
+    structure:                   # "does it look like an OCT B-scan?" Catches grayscale non-OCT (X-rays, B&W photos)
+      enabled: true
+      # Fitted on the VAL pack (7,980 real scans, each limit keeps 99.5%); checked once on the TEST pack:
+      # real OCT wrongly rejected = 177/7,818 (2.26%) on test (109/7,980 = 1.37% on val).
+      # Caught all 9 grayscale non-OCT images that the old guard let through (5 B&W photos, 4 X-rays).
+      min_row_peak: 0.689          # one bright retinal band on a dark background
+      max_median_brightness: 86    # OCT scans are mostly black
+      min_speckle: 0.068           # OCT has grainy speckle; X-rays and old photos are smooth
 
 ui:
   languages: [en, hi]            # add a language = add configs/i18n/<code>.yaml + list it here

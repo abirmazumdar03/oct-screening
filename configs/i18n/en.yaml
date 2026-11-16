@@ -37,6 +37,7 @@ guard:
   too_small: "The image is too small ({w}×{h} px). Please upload the original OCT scan."
   bad_aspect: "The image shape (width/height = {ratio}) doesn't look like an OCT scan."
   not_grayscale: "This looks like a colour photo, not an OCT scan (colour score {score}). Please upload a retinal OCT scan."
+  not_oct_structure: "This doesn't look like a retinal OCT scan (no retinal-layer pattern found). Please upload a retinal OCT scan. If this is an OCT scan, refer it for manual review."
   unreadable: "This file could not be read. Please upload a JPEG or PNG image."
 class:
   CNV:
