@@ -16,7 +16,8 @@ import gradio as gr  # noqa: E402
 from octscreen.app.i18n import Translator  # noqa: E402
 from octscreen.app.inference import Screener  # noqa: E402
 from octscreen.app.model_source import resolve_package  # noqa: E402
-from octscreen.app.render import about_markdown, label_dict, result_markdown  # noqa: E402
+from octscreen.app.render import (about_markdown, banner_html, header_markdown, label_dict,  # noqa: E402
+                                  result_markdown)
 from octscreen.common.config import load_config  # noqa: E402
 
 EXTS = (".jpeg", ".jpg", ".png")
@@ -58,39 +59,60 @@ def build_app(cfg):
             return "", None, None, None
         return analyze(img, lang)
 
-    def relabel(res, lang):
-        return result_markdown(res, lang, tr, thr), label_dict(res, lang, tr), about_markdown(screener.meta, lang, tr)
+    def texts(lang):
+        """Every on-screen text in ONE language (the selected one)."""
+        return {k: tr.t(lang, k) for k in ("upload_label", "analyze_button", "examples_label", "confidence",
+                                           "heatmap_label", "about_heading")}
 
+    t0 = texts(default_lang)
     with gr.Blocks(title=tr.both("title")) as demo:
-        header = f"# {tr.both('title')}\n{tr.both('subtitle', sep='  ·  ')}"
-        if screener.placeholder:
-            header += f"\n\n> {tr.both('placeholder_banner', sep='  /  ')}"
-        if online:
-            header += f"\n\n> {tr.both('online_notice', sep='  /  ')}"
-        gr.Markdown(header)
-        lang = gr.Radio(choices=[(tr.t(code, "language_name"), code) for code in cfg.ui.languages],
-                        value=default_lang, label=tr.both("language_label"))
+        banner = gr.HTML(banner_html(default_lang, tr))
+        with gr.Row(equal_height=False):
+            with gr.Column(scale=5):
+                header = gr.Markdown(header_markdown(default_lang, tr, screener.placeholder, online))
+            with gr.Column(scale=1, min_width=220):          # compact language switch, top right
+                lang = gr.Radio(choices=[(tr.t(code, "language_name"), code) for code in cfg.ui.languages],
+                                value=default_lang, label=tr.both("language_label"))   # bilingual on purpose
         with gr.Row():
             with gr.Column(scale=1):
-                inp = gr.Image(type="pil", label=tr.both("upload_label"), sources=["upload", "clipboard"])
-                btn = gr.Button(tr.both("analyze_button"), variant="primary")
+                inp = gr.Image(type="pil", label=t0["upload_label"], sources=["upload", "clipboard"])
+                btn = gr.Button(t0["analyze_button"], variant="primary")
                 examples = _examples(cfg.ui.examples_dir, cfg.ui.max_examples)
-                if examples:
-                    gr.Examples(examples=examples, inputs=inp, label=tr.both("examples_label"), cache_examples=False)
+                ex = (gr.Examples(examples=examples, inputs=inp, label=t0["examples_label"], cache_examples=False)
+                      if examples else None)
             with gr.Column(scale=1):
                 out_md = gr.Markdown()
-                out_label = gr.Label(num_top_classes=len(screener.classes), label=tr.both("confidence"))
-                out_heat = gr.Image(label=tr.both("heatmap_label"), interactive=False,
+                out_label = gr.Label(num_top_classes=len(screener.classes), label=t0["confidence"])
+                out_heat = gr.Image(label=t0["heatmap_label"], interactive=False,
                                     visible=screener.explainer is not None)
-        with gr.Accordion(tr.both("about_heading"), open=False):
+        with gr.Accordion(t0["about_heading"], open=False) as acc:
             about = gr.Markdown(about_markdown(screener.meta, default_lang, tr))
         state = gr.State(None)
+
+        def relabel(res, lang):
+            """Switch every text to the selected language. Re-labels only: the model is NOT re-run."""
+            t = texts(lang)
+            ups = [result_markdown(res, lang, tr, thr),
+                   gr.update(value=label_dict(res, lang, tr), label=t["confidence"]),
+                   about_markdown(screener.meta, lang, tr),
+                   banner_html(lang, tr),
+                   header_markdown(lang, tr, screener.placeholder, online),
+                   gr.update(label=t["upload_label"]),
+                   gr.update(value=t["analyze_button"]),
+                   gr.update(label=t["heatmap_label"]),
+                   gr.update(label=t["about_heading"])]
+            if ex is not None:
+                ups.append(gr.update(label=t["examples_label"]))
+            return ups
 
         outputs = [out_md, out_label, out_heat, state]
         btn.click(analyze, [inp, lang], outputs)
         if bool(cfg.ui.auto_analyze):
             inp.change(auto_analyze, [inp, lang], outputs)        # fires on upload, paste AND sample-scan click
-        lang.change(relabel, [state, lang], [out_md, out_label, about])   # re-label only, no model re-run
+        relabel_out = [out_md, out_label, about, banner, header, inp, btn, out_heat, acc]
+        if ex is not None:
+            relabel_out.append(ex.dataset)
+        lang.change(relabel, [state, lang], relabel_out)
     return demo
 
 
@@ -110,9 +132,10 @@ def main(argv=None):
     host = os.environ.get("OCT_HOST", str(cfg.ui.host))
     port = int(os.environ.get("PORT", cfg.ui.port))
     allowed = [str(Path(str(cfg.ui.examples_dir)).resolve())] if Path(str(cfg.ui.examples_dir)).is_dir() else []
+    theme = gr.themes.Default(primary_hue=str(cfg.ui.get("theme_hue", "blue")))
     demo.queue().launch(server_name=host, server_port=port, share=a.share or bool(cfg.ui.share),
                         inbrowser=bool(cfg.ui.open_browser) and host in ("127.0.0.1", "localhost"),
-                        allowed_paths=allowed)
+                        allowed_paths=allowed, theme=theme)
 
 
 if __name__ == "__main__":
