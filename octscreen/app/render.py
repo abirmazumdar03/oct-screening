@@ -1,5 +1,6 @@
 # octscreen/app/render.py
 """Turn a screening result into language-specific text. No UI imports, so it's reusable by any front-end."""
+import html
 
 
 def _pct(v):
@@ -45,7 +46,6 @@ def about_markdown(meta, lang, tr):
     def pct(v):
         return na if v is None else _pct(v)
 
-    lat = na if m.get("latency_ms_p50") is None else f"{m['latency_ms_p50']} ms · {m.get('latency_device') or ''}"
     rows = [
         ("about.package", f"{meta['package_name']} v{meta['package_version']}"),
         ("about.precision", meta["classifier"]["precision"].upper()),
@@ -53,9 +53,23 @@ def about_markdown(meta, lang, tr):
         ("about.accuracy", pct(m.get("test_accuracy"))),
         ("about.macro_f1", pct(m.get("test_macro_f1"))),
         ("about.urgent", pct(m.get("urgent_sensitivity"))),
-        ("about.latency", lat),
     ]
     lines = [f"- **{tr.t(lang, k)}:** {v}" for k, v in rows]
     if meta.get("placeholder"):
         lines.insert(0, f"> {tr.t(lang, 'placeholder_banner')}")
     return "\n".join(lines) + f"\n\n{tr.t(lang, 'about.data')}"
+
+
+def banner_html(lang, tr):
+    """Centred event banner shown above the app title."""
+    return f"<h2 style='text-align:center; margin:0.3em 0 0 0'>{html.escape(tr.t(lang, 'banner'))}</h2>"
+
+
+def header_markdown(lang, tr, placeholder=False, online=False):
+    """App title, subtitle and notices, in ONE language (the one selected)."""
+    out = f"# {tr.t(lang, 'title')}\n{tr.t(lang, 'subtitle')}"
+    if placeholder:
+        out += f"\n\n> {tr.t(lang, 'placeholder_banner')}"
+    if online:
+        out += f"\n\n> {tr.t(lang, 'online_notice')}"
+    return out

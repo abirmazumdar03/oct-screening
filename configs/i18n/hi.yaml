@@ -1,5 +1,6 @@
 # configs/i18n/hi.yaml
 language_name: "हिन्दी"
+banner: "ZEISS BeyondCode'26 · उन्नत किफ़ायती नवाचार के लिए AI/ML"
 title: "OCT रेटिना स्क्रीनिंग सहायक"
 subtitle: "रेटिना के OCT स्कैन की तुरंत जाँच — बिना इंटरनेट, साधारण लैपटॉप पर"
 language_label: "भाषा"
@@ -25,7 +26,6 @@ about:
   accuracy: "टेस्ट सटीकता"
   macro_f1: "टेस्ट macro-F1"
   urgent: "गंभीर रोग की पहचान (CNV + DME)"
-  latency: "गति (एक स्कैन, मीडियन)"
   not_measured: "अभी मापा नहीं गया"
   data: "सार्वजनिक शोध डेटा (Kermany et al., Cell 2018) पर प्रशिक्षित और जाँचा गया, जो ज़्यादातर एक ही OCT स्कैनर ब्रांड का है। क्लिनिकल रूप से प्रमाणित नहीं।"
 triage:

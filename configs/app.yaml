@@ -50,3 +50,4 @@ ui:
   heatmap_alpha: 0.45
   examples_dir: ${oc.env:OCT_EXAMPLES_DIR,artifacts/packs/sample_scans}
   max_examples: 8
+  theme_hue: blue               # Gradio colour hue: blue, indigo, sky, teal, green, orange, …

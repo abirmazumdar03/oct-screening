@@ -1,5 +1,6 @@
 # configs/i18n/en.yaml
 language_name: "English"
+banner: "ZEISS BeyondCode'26 · AI/ML for Advanced Frugal Innovation"
 title: "OCT Retina Screening Assistant"
 subtitle: "Instant screening of retinal OCT scans, offline, on an ordinary laptop"
 language_label: "Language"
@@ -25,7 +26,6 @@ about:
   accuracy: "Test accuracy"
   macro_f1: "Test macro-F1"
   urgent: "Urgent-disease detection (CNV + DME)"
-  latency: "Speed (median, one scan)"
   not_measured: "not measured yet"
   data: "Trained and evaluated on public research data (Kermany et al., Cell 2018), mostly from one OCT scanner brand. Not clinically validated."
 triage:
