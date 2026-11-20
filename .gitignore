@@ -9,3 +9,4 @@ data/raw/
 octscreen.egg-info/
 STEP_BY_STEP.md
 show_proof.py
+artifacts/tmp_uploads/
