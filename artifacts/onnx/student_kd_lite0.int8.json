@@ -1,0 +1,64 @@
+{
+  "name": "student_kd_lite0",
+  "precision": "int8",
+  "arch": "efficientnet_lite0.ra_in1k",
+  "num_classes": 4,
+  "class_names": [
+    "CNV",
+    "DME",
+    "DRUSEN",
+    "NORMAL"
+  ],
+  "preprocess": {
+    "image_size": [
+      224,
+      224
+    ],
+    "resize_mode": "squash",
+    "color": "grayscale_to_rgb",
+    "mean": [
+      0.485,
+      0.456,
+      0.406
+    ],
+    "std": [
+      0.229,
+      0.224,
+      0.225
+    ]
+  },
+  "source_checkpoint": "artifacts\\runs\\student_kd_lite0_v1\\best.pt",
+  "checkpoint_epoch": 15,
+  "val_metrics_from_training": {
+    "accuracy": 0.9492481203007519,
+    "macro_f1": 0.9188086837167578,
+    "urgent_sensitivity": 0.9770090698164944
+  },
+  "exporter": "legacy",
+  "opset": 17,
+  "parity_max_abs_diff": 2.980232238769531e-07,
+  "size_mb": 3.801,
+  "quant": {
+    "mode": "int8_static",
+    "format": "qdq",
+    "per_channel": true,
+    "reduce_range": true,
+    "activation_type": "quint8",
+    "weight_type": "qint8",
+    "calibrate_method": "minmax",
+    "percentile": 99.999,
+    "exclude_first_conv": false,
+    "exclude_last_linear": false,
+    "nodes_to_exclude": [],
+    "max_f1_drop": 0.02,
+    "calib": {
+      "root": "artifacts/packs/calib_pack",
+      "splits_csv": "artifacts/packs/calib_pack/manifest.csv",
+      "split": "train",
+      "per_class": 128,
+      "batch_size": 16
+    }
+  },
+  "source_fp32": "student_kd_lite0.fp32.onnx",
+  "quant_agreement_pct_64_train_images": 100.0
+}

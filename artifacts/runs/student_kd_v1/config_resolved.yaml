@@ -1,0 +1,78 @@
+data:
+  root: '/kaggle/input/datasets/paultimothymooney/kermany2018/oct2017/OCT2017 '
+  splits_csv: data/splits/splits_v1.csv
+  class_names:
+  - CNV
+  - DME
+  - DRUSEN
+  - NORMAL
+  filename_regex: ^(?P<label>[A-Za-z]+)-(?P<patient>\d+)-(?P<index>\d+)\.(?:jpe?g|png)$
+  image_exts:
+  - .jpeg
+  - .jpg
+  - .png
+  path_resolution: relpath
+split:
+  version: v1
+  seed: 42
+  val_frac: 0.1
+  test_frac: 0.1
+preprocess:
+  image_size:
+  - 224
+  - 224
+  resize_mode: squash
+  color: grayscale_to_rgb
+  mean:
+  - 0.485
+  - 0.456
+  - 0.406
+  std:
+  - 0.229
+  - 0.224
+  - 0.225
+urgent_classes:
+- CNV
+- DME
+run:
+  name: student_kd_v1
+  out_dir: /kaggle/working/artifacts/runs
+  seed: 42
+model:
+  arch: mobilenetv3_small_100.lamb_in1k
+  pretrained: true
+  drop_rate: 0.2
+train:
+  epochs: 20
+  batch_size: 128
+  num_workers: 4
+  amp: true
+  channels_last: true
+  lr_backbone: 0.001
+  lr_head: 0.002
+  weight_decay: 0.01
+  warmup_epochs: 1
+  min_lr_ratio: 0.01
+  label_smoothing: 0.0
+  class_weighting: inverse_sqrt
+  freeze_backbone_epochs: 0
+  grad_clip: 1.0
+  early_stopping_patience: 4
+  monitor: macro_f1
+  log_every: 100
+  resume: null
+aug:
+  enabled: true
+  hflip_p: 0.5
+  rotate_deg: 10
+  translate: 0.05
+  scale:
+  - 0.95
+  - 1.05
+  brightness: 0.1
+  contrast: 0.1
+kd:
+  enabled: true
+  teacher_checkpoint: /kaggle/input/models/adityakumarakp/teacher-output/pytorch/default/1/best.pt
+  temperature: 4.0
+  alpha: 0.7

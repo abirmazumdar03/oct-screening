@@ -1,0 +1,64 @@
+{
+  "name": "student_kd",
+  "precision": "int8",
+  "arch": "mobilenetv3_small_100.lamb_in1k",
+  "num_classes": 4,
+  "class_names": [
+    "CNV",
+    "DME",
+    "DRUSEN",
+    "NORMAL"
+  ],
+  "preprocess": {
+    "image_size": [
+      224,
+      224
+    ],
+    "resize_mode": "squash",
+    "color": "grayscale_to_rgb",
+    "mean": [
+      0.485,
+      0.456,
+      0.406
+    ],
+    "std": [
+      0.229,
+      0.224,
+      0.225
+    ]
+  },
+  "source_checkpoint": "artifacts\\runs\\student_kd_v1\\best.pt",
+  "checkpoint_epoch": 9,
+  "val_metrics_from_training": {
+    "accuracy": 0.9290726817042606,
+    "macro_f1": 0.8867976201750767,
+    "urgent_sensitivity": 0.9673064754271251
+  },
+  "exporter": "legacy",
+  "opset": 17,
+  "parity_max_abs_diff": 1.8775463104248047e-06,
+  "size_mb": 1.684,
+  "quant": {
+    "mode": "int8_dynamic",
+    "format": "qdq",
+    "per_channel": true,
+    "reduce_range": true,
+    "activation_type": "quint8",
+    "weight_type": "qint8",
+    "calibrate_method": "minmax",
+    "percentile": 99.999,
+    "exclude_first_conv": false,
+    "exclude_last_linear": false,
+    "nodes_to_exclude": [],
+    "max_f1_drop": 0.02,
+    "calib": {
+      "root": "artifacts/packs/calib_pack",
+      "splits_csv": "artifacts/packs/calib_pack/manifest.csv",
+      "split": "train",
+      "per_class": 128,
+      "batch_size": 16
+    }
+  },
+  "source_fp32": "student_kd.fp32.onnx",
+  "quant_agreement_pct_64_train_images": 29.69
+}

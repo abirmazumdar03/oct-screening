@@ -1,0 +1,41 @@
+{
+  "name": "student_base_lite0",
+  "precision": "fp32",
+  "arch": "efficientnet_lite0.ra_in1k",
+  "num_classes": 4,
+  "class_names": [
+    "CNV",
+    "DME",
+    "DRUSEN",
+    "NORMAL"
+  ],
+  "preprocess": {
+    "image_size": [
+      224,
+      224
+    ],
+    "resize_mode": "squash",
+    "color": "grayscale_to_rgb",
+    "mean": [
+      0.485,
+      0.456,
+      0.406
+    ],
+    "std": [
+      0.229,
+      0.224,
+      0.225
+    ]
+  },
+  "source_checkpoint": "artifacts\\runs\\student_base_lite0_v1\\best.pt",
+  "checkpoint_epoch": 2,
+  "val_metrics_from_training": {
+    "accuracy": 0.9281954887218045,
+    "macro_f1": 0.8881154018302215,
+    "urgent_sensitivity": 0.9719468466568234
+  },
+  "exporter": "legacy",
+  "opset": 17,
+  "parity_max_abs_diff": 1.1920928955078125e-07,
+  "size_mb": 13.457
+}
