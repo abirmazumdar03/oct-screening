@@ -10,4 +10,5 @@ data/raw/
 .ipynb_checkpoints/
 .env
 octscreen.egg-info/
+STEP_BY_STEP.md
 show_proof.py

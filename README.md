@@ -4,7 +4,7 @@
 
 Team **MOTHERBOARD** · ZEISS BeyondCode'26 · Theme: *AI/ML for Advanced Frugal Innovation*
 
-> ⚠️ **Screening aid, not a diagnosis.** It was evaluated on a public research dataset and is not clinically validated.
+> 🩺 **AI as an assistant, not a replacement.** This tool is designed to support trained eye-care professionals by prioritising which scans need attention first. It does not make a diagnosis, and every result should be confirmed by a qualified clinician. It was evaluated on a public research dataset and has not been clinically validated.
 
 ---
 
@@ -21,6 +21,7 @@ Retinal diseases show up early on **OCT scans**, but reading them takes a specia
 | **Little memory and storage** | 3.80 MB model file; about 35 MB of extra RAM while running |
 | **No internet** | Everything runs locally, with no cloud calls |
 | **Needs to be trusted** | A heatmap of where the model looked, a calibrated confidence, and "send to a human" when it isn't sure |
+| **Must not guess on the wrong input** | An input guard refuses images that aren't OCT scans before the model runs |
 
 **How we get there:**
 - **Knowledge distillation:** a strong but heavy model (the *teacher*) trains a small one (the *student*).
@@ -100,6 +101,22 @@ flowchart LR
 
 The full table is in [`docs/benchmark.md`](docs/benchmark.md), and the confusion matrix is in [`docs/img/confusion_test_kd_int8.png`](docs/img/confusion_test_kd_int8.png).
 
+**It refuses what it wasn't built for.** A classifier trained only on OCT scans will always pick one of its 4 classes, even for a selfie or an X-ray. So before the model runs, an input guard checks that the image looks like an OCT scan:
+
+| Check | What it looks for | How the limit was set |
+|---|---|---|
+| Colour | OCT scans are grayscale | Real OCT scores 0.0 on all 7,818 test scans |
+| Retinal band | One bright horizontal band on a dark background | Fitted on 7,980 validation scans (each limit keeps 99.5%) |
+| Brightness | OCT scans are mostly dark | Same |
+| Speckle | OCT has a fine grainy texture; X-rays and old photos are smooth | Same |
+
+| Measured on | Result |
+|---|---|
+| 16 non-OCT test images (colour photos, a logo, black-and-white photos, X-rays) | **16 / 16 refused**, including the 9 grayscale images the first version let through |
+| Real OCT scans, held-out test set | **7,641 / 7,818 accepted (97.74%)**; 177 (2.26%) refused |
+
+The 2.26% is the honest cost of being strict. When a real scan is refused, the app says so and asks for **manual review**; it never guesses. On validation, where the limits were fitted, the figure was 1.37% (109 / 7,980). Details: [`docs/decisions.md`](docs/decisions.md)
+
 ---
 
 ## Project status
@@ -113,7 +130,8 @@ The full table is in [`docs/benchmark.md`](docs/benchmark.md), and the confusion
 | Calibration + review-threshold table | ✅ Done |
 | Final test-set benchmark | ✅ Done (evaluated once) |
 | Versioned model package for the app | ✅ Done (v1.1.1) |
-| Bilingual offline app (Gradio, English / Hindi) | 🟡 In integration |
+| Bilingual offline app (Gradio, English / Hindi) | ✅ Done, running with model package v1.1.1 |
+| Input guard (colour + OCT structure) | ✅ Done (16 / 16 non-OCT refused; 2.26% of real OCT refused, measured on test) |
 | Speed on our 2 other laptops (Ryzen 5, Core i5) | 🟡 In progress |
 | Final submission | 📅 25 Nov 2026 |
 
@@ -126,11 +144,26 @@ You need [uv](https://docs.astral.sh/uv/) and Git. uv installs the right Python 
 ```bash
 git clone https://github.com/abirmazumdar03/oct-screening.git
 cd oct-screening
-uv sync --group optimize      # CPU-only PyTorch + ONNX Runtime
+uv sync --group optimize      # CPU-only PyTorch + ONNX Runtime  (app: --group app --group app-heatmap)
 uv run pytest -q              # contract tests: split has no leak, preprocessing, ONNX parity, explainer
 ```
 
 > **About model files and data:** model weights, ONNX files and data packs are **not in git**. They're too large, and the dataset has its own terms. The commands below expect them in `artifacts/`. The team shares them on Drive, or you can rebuild them yourself with the training steps further down.
+
+### Run the app (offline, English / हिन्दी)
+
+```powershell
+uv sync --group app --group app-heatmap        # once, needs internet
+powershell -ExecutionPolicy Bypass -File scripts\run_app.ps1            # opens http://127.0.0.1:7860 · add -Lang hi · -NoHeatmap
+uv run python -m octscreen.app.cli --images artifacts/packs/sample_scans --lang hi   # no browser: table + CSV
+```
+
+Upload a scan (or click a sample) and the app shows, in under a second: the **triage instruction** first
+(🔴 urgent · 🟡 routine · 🟢 no signs · ⚪ uncertain → manual review), the class with **confidence bars**, the
+**heatmap**, and the time taken. Images that don't look like OCT scans (colour photos, X-rays, black-and-white photos,
+tiny images, odd shapes) are refused before the model runs, and anything below the confidence cut-off
+(`configs/app.yaml → policy.confidence_threshold`) is sent to a human instead of being guessed. All policy lives in `configs/app.yaml`; all text in `configs/i18n/{en,hi}.yaml`.
+Deployment files (Docker, Hugging Face Space, Render) are in `deploy/`.
 
 ### Run the shipped model
 
@@ -221,9 +254,10 @@ octscreen/
 ├─ data/        dataset discovery, patient-level split, data packs
 ├─ training/    models, distillation loss, training, evaluation
 ├─ optimize/    ONNX export, quantization, calibration, benchmark, packaging
-└─ explain/     Grad-CAM explainer + heatmap gallery
+├─ explain/     Grad-CAM explainer + heatmap gallery
+└─ app/         offline bilingual app: input guard, inference, triage, UI
 configs/        all settings (data, teacher, students, optimize, app text in English/Hindi)
-tests/          contract tests (no patient leak, preprocessing, ONNX parity, explainer, package schema)
+tests/          contract tests (no patient leak, preprocessing, ONNX parity, explainer, package schema, input guard)
 docs/           benchmark, decisions log, training report, model card, heatmap gallery
 data/splits/    the committed patient-level split (CSV + summary)
 notebooks/      thin Kaggle runner notebooks
@@ -249,7 +283,12 @@ tools/          placeholder model package for app wiring tests
 - **Not comparable to published 96–99% results.** Those use an image-level split; ours is the stricter patient-level split.
 - **DRUSEN is the hardest class** (88% recall on test). It's mostly confused with CNV.
 - **8-bit made the model smaller, not faster, on our test CPU (i3-5005U).** That CPU lacks fast 8-bit (VNNI) instructions, so the speed gain comes from the smaller network. Newer CPUs with VNNI may also run the 8-bit model faster; we haven't measured that yet.
+- **The input guard is strict by design.** It refuses 2.26% of real OCT scans (177 of 7,818 on test). Those cases go to manual review. It also can't rule out every unusual image that happens to look like an OCT scan.
 - **A screening aid on research data.** It doesn't diagnose and isn't clinically validated.
+
+## A note on AI in healthcare
+
+AI can help clinicians see more patients, sooner, and in places where specialists are scarce. That's why we built this. But a model only knows the data it learned from, and real clinics bring new scanners, new patients and new situations. That's why this tool shows where it looked, says when it isn't sure, and refuses images it wasn't built for. **The final decision always belongs to a qualified clinician.** We see this boundary not as a weakness of the tool but as the right way for AI and medicine to work together.
 
 ## Team
 
