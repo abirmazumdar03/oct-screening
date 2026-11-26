@@ -10,3 +10,4 @@ data/raw/
 .ipynb_checkpoints/
 .env
 octscreen.egg-info/
+show_proof.py
